@@ -1,3 +1,32 @@
 <resources>
-    <string name="app_name">ITunes-Search</string>
+    <string name="app_name">iTunes Search</string>
+    <string name="tab_catalog">Каталог</string>
+    <string name="tab_favorites">Избранное</string>
+    <string name="tab_settings">Настройки</string>
+    <string name="catalog_subtitle">Музыка и клипы</string>
+    <string name="search_hint">Трек, исполнитель, альбом</string>
+    <string name="clear_search">Очистить поиск</string>
+    <string name="catalog_count">Показано: %1$d из %2$d</string>
+    <string name="no_results">Ничего не найдено. Попробуйте другое название или исполнителя.</string>
+    <string name="details_title">Детали</string>
+    <string name="back">Назад к списку</string>
+    <string name="track_not_found">Элемент не найден. Вернитесь к списку и выберите другой.</string>
+    <string name="media_song">Песня</string>
+    <string name="media_video">Клип</string>
+    <string name="unknown_album">Альбом не указан</string>
+    <string name="duration">Длительность</string>
+    <string name="price">Цена в каталоге</string>
+    <string name="about_track">Информация</string>
+    <string name="album">Альбом</string>
+    <string name="genre">Жанр</string>
+    <string name="release_date">Дата выпуска</string>
+    <string name="country">Страна каталога</string>
+    <string name="track_number">Номер в альбоме</string>
+    <string name="track_number_value">%1$d из %2$d</string>
+    <string name="content_label">Содержание</string>
+    <string name="explicit_content">Есть ненормативная лексика</string>
+    <string name="no_explicit_content">Без ненормативной лексики</string>
+    <string name="cleaned_content">Отредактированная версия</string>
+    <string name="favorites_description">В этом разделе позже появятся сохранённые треки.</string>
+    <string name="settings_description">Здесь позже можно будет настроить приложение.</string>
 </resources>
