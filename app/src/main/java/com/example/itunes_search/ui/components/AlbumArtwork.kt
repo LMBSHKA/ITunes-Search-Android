@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.itunes_search.R
-import com.example.itunes_search.data.model.Track
+import com.example.itunes_search.domain.model.Track
 
 private val artworkColors = listOf(
     listOf(Color(0xFF4F46A5), Color(0xFF9A6BDA)),

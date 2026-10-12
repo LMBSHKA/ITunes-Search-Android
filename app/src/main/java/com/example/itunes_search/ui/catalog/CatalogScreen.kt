@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,8 +39,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.itunes_search.R
-import com.example.itunes_search.data.model.Track
+import com.example.itunes_search.domain.model.Track
 import com.example.itunes_search.ui.components.AlbumArtwork
+import com.example.itunes_search.ui.components.ErrorContent
+import com.example.itunes_search.ui.components.LoadingContent
 import com.example.itunes_search.util.formatDuration
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,20 +50,33 @@ import com.example.itunes_search.util.formatDuration
 fun CatalogScreen(
     state: CatalogUiState,
     onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    onRetry: () -> Unit,
     onTrackClick: (Long) -> Unit
 ) {
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val submitSearch = {
+        keyboardController?.hide()
+        focusManager.clearFocus()
+        onSearch()
+    }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.app_name)) },
+                actions = {
+                    IconButton(onClick = onRetry, enabled = !state.isLoading, modifier = Modifier.testTag("refresh_button")) {
+                        Icon(painterResource(R.drawable.ic_refresh), contentDescription = stringResource(R.string.refresh))
+                    }
+                }
+            )
+        }
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .testTag("catalog_screen")
+            modifier = Modifier.fillMaxSize().padding(innerPadding).testTag("catalog_screen")
         ) {
             Text(
                 text = stringResource(R.string.catalog_subtitle),
@@ -68,52 +84,58 @@ fun CatalogScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = onQueryChange,
-                label = { Text(stringResource(R.string.search_hint)) },
-                leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
-                trailingIcon = {
-                    if (state.query.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(
-                                painterResource(R.drawable.ic_clear),
-                                contentDescription = stringResource(R.string.clear_search)
-                            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = onQueryChange,
+                    label = { Text(stringResource(R.string.search_hint)) },
+                    trailingIcon = {
+                        if (state.query.isNotEmpty()) {
+                            IconButton(onClick = { onQueryChange("") }) {
+                                Icon(painterResource(R.drawable.ic_clear), contentDescription = stringResource(R.string.clear_search))
+                            }
                         }
-                    }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = {
-                    keyboardController?.hide()
-                    focusManager.clearFocus()
-                }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .testTag("catalog_search")
-            )
-            Text(
-                text = stringResource(R.string.catalog_count, state.tracks.size, state.totalCount),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-            Spacer(Modifier.height(8.dp))
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
+                    modifier = Modifier.weight(1f).testTag("catalog_search")
+                )
+                FilledIconButton(onClick = submitSearch, modifier = Modifier.testTag("search_button")) {
+                    Icon(painterResource(R.drawable.ic_search), contentDescription = stringResource(R.string.search_action))
+                }
+            }
 
-            if (state.tracks.isEmpty()) {
-                Box(
+            if (state.hasLoaded) {
+                Text(
+                    text = stringResource(R.string.search_results_for, state.searchedQuery),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Text(
+                    text = stringResource(R.string.catalog_count, state.tracks.size),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            val error = state.error
+            when {
+                state.isLoading -> LoadingContent(Modifier.fillMaxWidth().weight(1f).testTag("catalog_loading"))
+                error != null -> ErrorContent(error, onRetry, Modifier.fillMaxWidth().weight(1f).testTag("catalog_error"))
+                state.hasLoaded && state.tracks.isEmpty() -> Box(
                     modifier = Modifier.fillMaxWidth().weight(1f).padding(24.dp).testTag("empty_result"),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = stringResource(R.string.no_results),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Text(stringResource(R.string.no_results), style = MaterialTheme.typography.bodyLarge)
                 }
-            } else {
-                LazyColumn(
+                else -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxWidth().weight(1f).testTag("track_list"),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),

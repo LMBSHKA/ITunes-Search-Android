@@ -14,6 +14,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -29,6 +31,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.itunes_search.R
+import com.example.itunes_search.di.AppContainer
 import com.example.itunes_search.ui.catalog.CatalogScreen
 import com.example.itunes_search.ui.catalog.CatalogViewModel
 import com.example.itunes_search.ui.details.TrackDetailsScreen
@@ -50,7 +53,7 @@ private val bottomTabs = listOf(
 )
 
 @Composable
-fun ITunesApp() {
+fun ITunesApp(container: AppContainer) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
@@ -92,10 +95,14 @@ fun ITunesApp() {
         ) {
             navigation(startDestination = AppRoutes.CATALOG, route = AppRoutes.CATALOG_GRAPH) {
                 composable(AppRoutes.CATALOG) {
-                    val catalogViewModel: CatalogViewModel = viewModel()
+                    val factory = remember(container) { CatalogViewModel.factory(container.searchTracksUseCase) }
+                    val catalogViewModel: CatalogViewModel = viewModel(factory = factory)
+                    val state by catalogViewModel.uiState.collectAsStateWithLifecycle()
                     CatalogScreen(
-                        state = catalogViewModel.uiState,
+                        state = state,
                         onQueryChange = catalogViewModel::onQueryChange,
+                        onSearch = catalogViewModel::search,
+                        onRetry = catalogViewModel::retry,
                         onTrackClick = { trackId ->
                             navController.navigate(AppRoutes.details(trackId)) {
                                 launchSingleTop = true
@@ -107,9 +114,12 @@ fun ITunesApp() {
                     route = AppRoutes.DETAILS,
                     arguments = listOf(navArgument(AppRoutes.TRACK_ID_ARGUMENT) { type = NavType.LongType })
                 ) {
-                    val detailsViewModel: TrackDetailsViewModel = viewModel()
+                    val factory = remember(container) { TrackDetailsViewModel.factory(container.getTrackDetailsUseCase) }
+                    val detailsViewModel: TrackDetailsViewModel = viewModel(factory = factory)
+                    val state by detailsViewModel.uiState.collectAsStateWithLifecycle()
                     TrackDetailsScreen(
-                        track = detailsViewModel.track,
+                        state = state,
+                        onRetry = detailsViewModel::retry,
                         onBack = { navController.popBackStack() }
                     )
                 }

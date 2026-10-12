@@ -6,7 +6,7 @@
     <string name="catalog_subtitle">Музыка и клипы</string>
     <string name="search_hint">Трек, исполнитель, альбом</string>
     <string name="clear_search">Очистить поиск</string>
-    <string name="catalog_count">Показано: %1$d из %2$d</string>
+    <string name="catalog_count">Найдено: %1$d</string>
     <string name="no_results">Ничего не найдено. Попробуйте другое название или исполнителя.</string>
     <string name="details_title">Детали</string>
     <string name="back">Назад к списку</string>
@@ -29,4 +29,17 @@
     <string name="cleaned_content">Отредактированная версия</string>
     <string name="favorites_description">В этом разделе позже появятся сохранённые треки.</string>
     <string name="settings_description">Здесь позже можно будет настроить приложение.</string>
+    <string name="search_action">Найти</string>
+    <string name="search_results_for">Результаты поиска: %1$s</string>
+    <string name="refresh">Обновить результаты</string>
+    <string name="loading">Загрузка…</string>
+    <string name="loading_failed">Не удалось загрузить данные</string>
+    <string name="retry">Повторить</string>
+    <string name="error_empty_query">Введите название трека, исполнителя или альбома и нажмите «Найти».</string>
+    <string name="error_network">Не удалось подключиться к сервису. Проверьте интернет и повторите запрос.</string>
+    <string name="error_timeout">Сервис не ответил вовремя. Попробуйте ещё раз.</string>
+    <string name="error_rate_limit">Слишком много запросов. Подождите немного и повторите поиск.</string>
+    <string name="error_server">Сервис iTunes временно недоступен. Попробуйте позже.</string>
+    <string name="error_invalid_response">Сервис вернул некорректные данные. Повторите запрос позже.</string>
+    <string name="error_unknown">Не удалось выполнить запрос. Попробуйте ещё раз.</string>
 </resources>
