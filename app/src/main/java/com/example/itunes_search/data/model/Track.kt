@@ -1,11 +1,11 @@
 package com.example.itunes_search.data.model
 
-// Названия полей совпадают с JSON iTunes. Не все поля есть у каждого результата.
+// Сетевая DTO: отсутствующие поля JSON могут быть null. В UI передаётся доменная модель.
 data class Track(
-    val trackId: Long,
-    val trackName: String,
-    val artistName: String,
-    val kind: String = "song",
+    val trackId: Long? = null,
+    val trackName: String? = null,
+    val artistName: String? = null,
+    val kind: String? = null,
     val collectionId: Long? = null,
     val collectionName: String? = null,
     val primaryGenreName: String? = null,
