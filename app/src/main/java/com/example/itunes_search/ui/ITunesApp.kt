@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -15,14 +17,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,8 +39,11 @@ import com.example.itunes_search.ui.catalog.CatalogScreen
 import com.example.itunes_search.ui.catalog.CatalogViewModel
 import com.example.itunes_search.ui.details.TrackDetailsScreen
 import com.example.itunes_search.ui.details.TrackDetailsViewModel
+import com.example.itunes_search.ui.favorites.FavoritesScreen
+import com.example.itunes_search.ui.favorites.FavoritesViewModel
 import com.example.itunes_search.ui.navigation.AppRoutes
-import com.example.itunes_search.ui.placeholder.PlaceholderScreen
+import com.example.itunes_search.ui.settings.SettingsScreen
+import com.example.itunes_search.ui.settings.SettingsViewModel
 
 private data class BottomTab(
     val route: String,
@@ -57,6 +63,19 @@ fun ITunesApp(container: AppContainer) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
+    // Каталог общий для вкладок: «Готово» обновляет именно существующий список.
+    val catalogFactory = remember(container) {
+        CatalogViewModel.factory(container.searchTracksUseCase, container.filtersRepository, container.filterBadgeCache)
+    }
+    val catalogViewModel: CatalogViewModel = viewModel(factory = catalogFactory)
+    val showFilterBadge by catalogViewModel.showFilterBadge.collectAsStateWithLifecycle()
+    val openTab: (String) -> Unit = { route ->
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize().imePadding(),
@@ -68,18 +87,16 @@ fun ITunesApp(container: AppContainer) {
                     NavigationBarItem(
                         modifier = Modifier.testTag(tab.testTag),
                         selected = selected,
-                        onClick = {
-                            if (!selected) {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
+                        onClick = { if (!selected) openTab(tab.route) },
+                        icon = {
+                            BadgedBox(badge = {
+                                if (tab.route == AppRoutes.SETTINGS && showFilterBadge) {
+                                    Badge(Modifier.testTag("settings_filter_badge"))
                                 }
+                            }) {
+                                Icon(painterResource(tab.icon), contentDescription = null)
                             }
                         },
-                        icon = { Icon(painterResource(tab.icon), contentDescription = null) },
                         label = { Text(stringResource(tab.title)) }
                     )
                 }
@@ -89,14 +106,10 @@ fun ITunesApp(container: AppContainer) {
         NavHost(
             navController = navController,
             startDestination = AppRoutes.CATALOG_GRAPH,
-            modifier = Modifier
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
+            modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
         ) {
             navigation(startDestination = AppRoutes.CATALOG, route = AppRoutes.CATALOG_GRAPH) {
                 composable(AppRoutes.CATALOG) {
-                    val factory = remember(container) { CatalogViewModel.factory(container.searchTracksUseCase) }
-                    val catalogViewModel: CatalogViewModel = viewModel(factory = factory)
                     val state by catalogViewModel.uiState.collectAsStateWithLifecycle()
                     CatalogScreen(
                         state = state,
@@ -104,42 +117,68 @@ fun ITunesApp(container: AppContainer) {
                         onSearch = catalogViewModel::search,
                         onRetry = catalogViewModel::retry,
                         onTrackClick = { trackId ->
-                            navController.navigate(AppRoutes.details(trackId)) {
-                                launchSingleTop = true
-                            }
-                        }
+                            navController.navigate(AppRoutes.details(trackId)) { launchSingleTop = true }
+                        },
+                        showFilterBadge = showFilterBadge,
+                        onSettingsClick = { openTab(AppRoutes.SETTINGS) }
                     )
                 }
-                composable(
-                    route = AppRoutes.DETAILS,
-                    arguments = listOf(navArgument(AppRoutes.TRACK_ID_ARGUMENT) { type = NavType.LongType })
-                ) {
-                    val factory = remember(container) { TrackDetailsViewModel.factory(container.getTrackDetailsUseCase) }
-                    val detailsViewModel: TrackDetailsViewModel = viewModel(factory = factory)
-                    val state by detailsViewModel.uiState.collectAsStateWithLifecycle()
-                    TrackDetailsScreen(
-                        state = state,
-                        onRetry = detailsViewModel::retry,
-                        onBack = { navController.popBackStack() }
-                    )
-                }
+                trackDetailsDestination(AppRoutes.DETAILS, container) { navController.popBackStack() }
             }
-            composable(AppRoutes.FAVORITES) {
-                PlaceholderScreen(
-                    title = R.string.tab_favorites,
-                    description = R.string.favorites_description,
-                    icon = R.drawable.ic_favorite,
-                    testTag = "favorites_screen"
-                )
+            navigation(startDestination = AppRoutes.FAVORITES_LIST, route = AppRoutes.FAVORITES) {
+                composable(AppRoutes.FAVORITES_LIST) {
+                    val factory = remember(container) { FavoritesViewModel.factory(container.favoriteTracksRepository) }
+                    val favoritesViewModel: FavoritesViewModel = viewModel(factory = factory)
+                    val state by favoritesViewModel.uiState.collectAsStateWithLifecycle()
+                    FavoritesScreen(
+                        state = state,
+                        onTrackClick = { trackId ->
+                            navController.navigate(AppRoutes.favoriteDetails(trackId)) { launchSingleTop = true }
+                        },
+                        onRetry = favoritesViewModel::retry
+                    )
+                }
+                trackDetailsDestination(AppRoutes.FAVORITE_DETAILS, container) { navController.popBackStack() }
             }
             composable(AppRoutes.SETTINGS) {
-                PlaceholderScreen(
-                    title = R.string.tab_settings,
-                    description = R.string.settings_description,
-                    icon = R.drawable.ic_settings,
-                    testTag = "settings_screen"
+                val factory = remember(container) {
+                    SettingsViewModel.factory(container.filtersRepository, container.filterBadgeCache)
+                }
+                val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
+                val filters by settingsViewModel.filters.collectAsStateWithLifecycle()
+                SettingsScreen(
+                    filters = filters,
+                    onGenreChange = settingsViewModel::onGenreChange,
+                    onMediaTypeChange = settingsViewModel::onMediaTypeChange,
+                    onHideExplicitChange = settingsViewModel::onHideExplicitChange,
+                    onReset = settingsViewModel::reset,
+                    onDone = {
+                        settingsViewModel.apply()
+                        catalogViewModel.retry()
+                        // Возвращаемся именно к списку, даже если раньше были открыты детали.
+                        navController.popBackStack(AppRoutes.CATALOG, inclusive = false)
+                    }
                 )
             }
         }
+    }
+}
+
+private fun NavGraphBuilder.trackDetailsDestination(route: String, container: AppContainer, onBack: () -> Unit) {
+    composable(
+        route = route,
+        arguments = listOf(navArgument(AppRoutes.TRACK_ID_ARGUMENT) { type = NavType.LongType })
+    ) {
+        val factory = remember(container) {
+            TrackDetailsViewModel.factory(container.getTrackDetailsUseCase, container.favoriteTracksRepository)
+        }
+        val detailsViewModel: TrackDetailsViewModel = viewModel(factory = factory)
+        val state by detailsViewModel.uiState.collectAsStateWithLifecycle()
+        TrackDetailsScreen(
+            state = state,
+            onRetry = detailsViewModel::retry,
+            onBack = onBack,
+            onToggleFavorite = detailsViewModel::toggleFavorite
+        )
     }
 }

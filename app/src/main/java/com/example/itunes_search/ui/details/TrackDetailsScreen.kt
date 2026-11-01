@@ -43,11 +43,29 @@ import com.example.itunes_search.util.formatReleaseDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TrackDetailsScreen(state: TrackDetailsUiState, onRetry: () -> Unit, onBack: () -> Unit) {
+fun TrackDetailsScreen(
+    state: TrackDetailsUiState,
+    onRetry: () -> Unit,
+    onBack: () -> Unit,
+    onToggleFavorite: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.details_title)) },
+                actions = {
+                    IconButton(
+                        onClick = onToggleFavorite,
+                        enabled = state.track != null && state.isFavoriteLoaded && !state.isSavingFavorite && !state.isLoading,
+                        modifier = Modifier.testTag("toggle_favorite")
+                    ) {
+                        Icon(
+                            painterResource(if (state.isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border),
+                            contentDescription = stringResource(if (state.isFavorite) R.string.remove_favorite else R.string.add_favorite),
+                            tint = if (state.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("details_back")) {
                         Icon(
@@ -80,6 +98,9 @@ fun TrackDetailsScreen(state: TrackDetailsUiState, onRetry: () -> Unit, onBack: 
                     .testTag("track_details"),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                if (state.favoriteError) {
+                    Text(stringResource(R.string.favorite_error), color = MaterialTheme.colorScheme.error)
+                }
                 TrackHeader(track)
                 TrackInformation(track)
             }

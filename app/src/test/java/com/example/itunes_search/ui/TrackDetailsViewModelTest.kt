@@ -1,5 +1,6 @@
 package com.example.itunes_search.ui
 
+import com.example.itunes_search.testutil.FakeFavoriteTracksRepository
 import androidx.lifecycle.SavedStateHandle
 import com.example.itunes_search.domain.model.Track
 import com.example.itunes_search.domain.model.TrackError
@@ -23,12 +24,31 @@ class TrackDetailsViewModelTest {
     @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
     @Test
+    fun favoriteButtonAddsAndRemovesTheCompleteTrack() = runTest {
+        val repository = FakeTrackRepository()
+        val favorites = FakeFavoriteTracksRepository()
+        val viewModel = TrackDetailsViewModel(
+            GetTrackDetailsUseCase(repository), SavedStateHandle(mapOf("trackId" to repository.track.trackId)), favorites
+        )
+        runCurrent()
+        assertTrue(viewModel.uiState.value.isFavoriteLoaded)
+        viewModel.toggleFavorite()
+        runCurrent()
+        assertEquals(repository.track, favorites.getTrackById(repository.track.trackId))
+        assertTrue(viewModel.uiState.value.isFavorite)
+        viewModel.toggleFavorite()
+        runCurrent()
+        assertEquals(null, favorites.getTrackById(repository.track.trackId))
+        assertFalse(viewModel.uiState.value.isFavorite)
+    }
+
+    @Test
     fun detailsLoadTheNavigationIdAndShowLoading() = runTest {
         val repository = FakeTrackRepository()
         val response = CompletableDeferred<TrackResult<Track>>()
         repository.detailsHandler = { response.await() }
         val viewModel = TrackDetailsViewModel(
-            GetTrackDetailsUseCase(repository), SavedStateHandle(mapOf("trackId" to 697195462L))
+            GetTrackDetailsUseCase(repository), SavedStateHandle(mapOf("trackId" to 697195462L)), FakeFavoriteTracksRepository()
         )
         runCurrent()
         assertTrue(viewModel.uiState.value.isLoading)
@@ -43,7 +63,7 @@ class TrackDetailsViewModelTest {
     fun failedLookupCanBeRetried() = runTest {
         val repository = FakeTrackRepository().apply { detailsResult = TrackResult.Failure(TrackError.NETWORK) }
         val viewModel = TrackDetailsViewModel(
-            GetTrackDetailsUseCase(repository), SavedStateHandle(mapOf("trackId" to 697195462L))
+            GetTrackDetailsUseCase(repository), SavedStateHandle(mapOf("trackId" to 697195462L)), FakeFavoriteTracksRepository()
         )
         runCurrent()
         assertEquals(TrackError.NETWORK, viewModel.uiState.value.error)
@@ -58,7 +78,7 @@ class TrackDetailsViewModelTest {
     @Test
     fun missingIdShowsAnErrorWithoutCallingTheRepository() = runTest {
         val repository = FakeTrackRepository()
-        val viewModel = TrackDetailsViewModel(GetTrackDetailsUseCase(repository), SavedStateHandle())
+        val viewModel = TrackDetailsViewModel(GetTrackDetailsUseCase(repository), SavedStateHandle(), FakeFavoriteTracksRepository())
         runCurrent()
         assertEquals(TrackError.NOT_FOUND, viewModel.uiState.value.error)
         assertTrue(repository.requestedIds.isEmpty())

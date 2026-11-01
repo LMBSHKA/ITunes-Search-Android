@@ -1,5 +1,8 @@
 package com.example.itunes_search.ui
 
+import com.example.itunes_search.data.cache.FilterBadgeCache
+import com.example.itunes_search.domain.model.TrackFilters
+import com.example.itunes_search.testutil.FakeTrackFiltersRepository
 import androidx.lifecycle.SavedStateHandle
 import com.example.itunes_search.domain.model.Track
 import com.example.itunes_search.domain.model.TrackError
@@ -25,11 +28,37 @@ class CatalogViewModelTest {
     @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
     @Test
+    fun applyingSettingsReloadsTheSubmittedQueryWithAllFiltersAndSharesBadge() = runTest {
+        val repository = FakeTrackRepository()
+        val filters = FakeTrackFiltersRepository()
+        val badge = FilterBadgeCache(filters.load())
+        val viewModel = CatalogViewModel(SearchTracksUseCase(repository), SavedStateHandle(), filters, badge)
+        runCurrent()
+        assertEquals(listOf(repository.track), viewModel.uiState.value.tracks)
+
+        val settings = com.example.itunes_search.ui.settings.SettingsViewModel(filters, badge, SavedStateHandle())
+        settings.onGenreChange("no matching genre")
+        settings.apply()
+        viewModel.retry()
+        runCurrent()
+        assertTrue(viewModel.showFilterBadge.value)
+        assertTrue(viewModel.uiState.value.tracks.isEmpty())
+        assertEquals(listOf("Daft Punk", "Daft Punk"), repository.queries)
+
+        settings.reset()
+        settings.apply()
+        viewModel.retry()
+        runCurrent()
+        assertFalse(viewModel.showFilterBadge.value)
+        assertEquals(listOf(repository.track), viewModel.uiState.value.tracks)
+    }
+
+    @Test
     fun initialRequestShowsLoadingUntilTheResponseArrives() = runTest {
         val repository = FakeTrackRepository()
         val response = CompletableDeferred<TrackResult<List<Track>>>()
         repository.searchHandler = { response.await() }
-        val viewModel = CatalogViewModel(SearchTracksUseCase(repository), SavedStateHandle())
+        val viewModel = CatalogViewModel(SearchTracksUseCase(repository), SavedStateHandle(), FakeTrackFiltersRepository(), FilterBadgeCache(TrackFilters()))
         runCurrent()
         assertTrue(viewModel.uiState.value.isLoading)
         assertEquals(listOf("Daft Punk"), repository.queries)
@@ -43,7 +72,7 @@ class CatalogViewModelTest {
     @Test
     fun networkErrorCanBeRetriedAndTypingDoesNotSendRequests() = runTest {
         val repository = FakeTrackRepository().apply { searchResult = TrackResult.Failure(TrackError.NETWORK) }
-        val viewModel = CatalogViewModel(SearchTracksUseCase(repository), SavedStateHandle())
+        val viewModel = CatalogViewModel(SearchTracksUseCase(repository), SavedStateHandle(), FakeTrackFiltersRepository(), FilterBadgeCache(TrackFilters()))
         runCurrent()
         assertEquals(TrackError.NETWORK, viewModel.uiState.value.error)
         viewModel.onQueryChange("new draft")
@@ -62,7 +91,7 @@ class CatalogViewModelTest {
     fun searchTrimsTheQueryAndDoesNotSendBlankRequests() = runTest {
         val repository = FakeTrackRepository()
         val handle = SavedStateHandle()
-        val viewModel = CatalogViewModel(SearchTracksUseCase(repository), handle)
+        val viewModel = CatalogViewModel(SearchTracksUseCase(repository), handle, FakeTrackFiltersRepository(), FilterBadgeCache(TrackFilters()))
         runCurrent()
         viewModel.onQueryChange("  Get Lucky  ")
         viewModel.search()
@@ -84,7 +113,7 @@ class CatalogViewModelTest {
             if (query == "Daft Punk") withContext(NonCancellable) { oldResponse.await() }
             else TrackResult.Success(emptyList())
         }
-        val viewModel = CatalogViewModel(SearchTracksUseCase(repository), SavedStateHandle())
+        val viewModel = CatalogViewModel(SearchTracksUseCase(repository), SavedStateHandle(), FakeTrackFiltersRepository(), FilterBadgeCache(TrackFilters()))
         runCurrent()
         viewModel.onQueryChange("new search")
         viewModel.search()
