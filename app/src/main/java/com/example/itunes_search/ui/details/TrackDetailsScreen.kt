@@ -1,7 +1,6 @@
 package com.example.itunes_search.ui.details
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +24,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -34,15 +32,18 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.example.itunes_search.R
-import com.example.itunes_search.data.model.Track
+import com.example.itunes_search.domain.model.Track
+import com.example.itunes_search.domain.model.TrackError
 import com.example.itunes_search.ui.components.AlbumArtwork
+import com.example.itunes_search.ui.components.ErrorContent
+import com.example.itunes_search.ui.components.LoadingContent
 import com.example.itunes_search.util.formatDuration
 import com.example.itunes_search.util.formatPrice
 import com.example.itunes_search.util.formatReleaseDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TrackDetailsScreen(track: Track?, onBack: () -> Unit) {
+fun TrackDetailsScreen(state: TrackDetailsUiState, onRetry: () -> Unit, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -58,15 +59,19 @@ fun TrackDetailsScreen(track: Track?, onBack: () -> Unit) {
             )
         }
     ) { innerPadding ->
-        if (track == null) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(R.string.track_not_found))
-            }
-        } else {
-            Column(
+        val track = state.track
+        val error = state.error
+        when {
+            state.isLoading -> LoadingContent(
+                Modifier.fillMaxSize().padding(innerPadding).testTag("details_loading")
+            )
+            error != null -> ErrorContent(
+                error, onRetry, Modifier.fillMaxSize().padding(innerPadding).testTag("details_error")
+            )
+            track == null -> ErrorContent(
+                TrackError.NOT_FOUND, onRetry, Modifier.fillMaxSize().padding(innerPadding).testTag("details_error")
+            )
+            else -> Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
