@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.itunes_search.domain.model.TrackResult
+import com.example.itunes_search.data.cache.FilterBadgeCache
+import com.example.itunes_search.domain.repository.TrackFiltersRepository
 import com.example.itunes_search.domain.usecase.SearchTracksUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
@@ -18,8 +20,11 @@ import kotlinx.coroutines.launch
 
 class CatalogViewModel(
     private val searchTracksUseCase: SearchTracksUseCase,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
+    private val filtersRepository: TrackFiltersRepository,
+    badgeCache: FilterBadgeCache
 ) : ViewModel() {
+    val showFilterBadge = badgeCache.isVisible
     private val initialQuery = savedStateHandle.get<String>(QUERY_KEY) ?: "Daft Punk"
     private val _uiState = MutableStateFlow(CatalogUiState(query = initialQuery))
     val uiState = _uiState.asStateFlow()
@@ -53,11 +58,12 @@ class CatalogViewModel(
             it.copy(isLoading = true, hasLoaded = false, error = null, tracks = emptyList(), searchedQuery = term)
         }
         searchJob = viewModelScope.launch {
+            val filters = filtersRepository.load()
             val result = searchTracksUseCase(term)
             ensureActive()
             when (result) {
                 is TrackResult.Success -> _uiState.update {
-                    it.copy(isLoading = false, hasLoaded = true, tracks = result.data)
+                    it.copy(isLoading = false, hasLoaded = true, tracks = result.data.filter(filters::matches))
                 }
                 is TrackResult.Failure -> _uiState.update {
                     it.copy(isLoading = false, error = result.error)
@@ -69,8 +75,12 @@ class CatalogViewModel(
     companion object {
         private const val QUERY_KEY = "search_query"
 
-        fun factory(useCase: SearchTracksUseCase): ViewModelProvider.Factory = viewModelFactory {
-            initializer { CatalogViewModel(useCase, createSavedStateHandle()) }
+        fun factory(
+            useCase: SearchTracksUseCase,
+            filtersRepository: TrackFiltersRepository,
+            badgeCache: FilterBadgeCache
+        ): ViewModelProvider.Factory = viewModelFactory {
+            initializer { CatalogViewModel(useCase, createSavedStateHandle(), filtersRepository, badgeCache) }
         }
     }
 }

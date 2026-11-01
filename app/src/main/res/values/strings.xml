@@ -27,8 +27,6 @@
     <string name="explicit_content">Есть ненормативная лексика</string>
     <string name="no_explicit_content">Без ненормативной лексики</string>
     <string name="cleaned_content">Отредактированная версия</string>
-    <string name="favorites_description">В этом разделе позже появятся сохранённые треки.</string>
-    <string name="settings_description">Здесь позже можно будет настроить приложение.</string>
     <string name="search_action">Найти</string>
     <string name="search_results_for">Результаты поиска: %1$s</string>
     <string name="refresh">Обновить результаты</string>
@@ -42,4 +40,16 @@
     <string name="error_server">Сервис iTunes временно недоступен. Попробуйте позже.</string>
     <string name="error_invalid_response">Сервис вернул некорректные данные. Повторите запрос позже.</string>
     <string name="error_unknown">Не удалось выполнить запрос. Попробуйте ещё раз.</string>
+    <string name="filters_description">Фильтры применяются к результатам поиска после нажатия «Готово».</string>
+    <string name="filter_genre">Жанр</string>
+    <string name="filter_genre_hint">Например, Pop или Rock. Пустое поле — все жанры.</string>
+    <string name="filter_media_type">Тип записи</string>
+    <string name="media_all">Все записи</string>
+    <string name="filter_hide_explicit">Скрывать записи с ненормативной лексикой</string>
+    <string name="done">Готово</string>
+    <string name="reset_filters">Сбросить фильтры</string>
+    <string name="favorites_empty">В избранном пока пусто. Откройте трек и нажмите на сердечко.</string>
+    <string name="add_favorite">Добавить в избранное</string>
+    <string name="remove_favorite">Удалить из избранного</string>
+    <string name="favorite_error">Не удалось прочитать или изменить избранное. Повторите попытку.</string>
 </resources>

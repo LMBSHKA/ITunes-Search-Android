@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -52,7 +54,9 @@ fun CatalogScreen(
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onRetry: () -> Unit,
-    onTrackClick: (Long) -> Unit
+    onTrackClick: (Long) -> Unit,
+    showFilterBadge: Boolean,
+    onSettingsClick: () -> Unit
 ) {
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -68,6 +72,13 @@ fun CatalogScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
+                    IconButton(onClick = onSettingsClick, modifier = Modifier.testTag("catalog_settings")) {
+                        BadgedBox(badge = {
+                            if (showFilterBadge) Badge(Modifier.testTag("catalog_filter_badge"))
+                        }) {
+                            Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.tab_settings))
+                        }
+                    }
                     IconButton(onClick = onRetry, enabled = !state.isLoading, modifier = Modifier.testTag("refresh_button")) {
                         Icon(painterResource(R.drawable.ic_refresh), contentDescription = stringResource(R.string.refresh))
                     }
@@ -155,7 +166,7 @@ fun CatalogScreen(
 }
 
 @Composable
-private fun TrackCard(track: Track, onClick: () -> Unit) {
+fun TrackCard(track: Track, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().testTag("track_${track.trackId}"),
