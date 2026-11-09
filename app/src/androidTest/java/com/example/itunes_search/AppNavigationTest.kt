@@ -1,13 +1,18 @@
 package com.example.itunes_search
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -21,6 +26,7 @@ import com.example.itunes_search.domain.repository.TrackRepository
 import com.example.itunes_search.ui.ITunesApp
 import com.example.itunes_search.ui.theme.ITunesSearchTheme
 import kotlinx.coroutines.CompletableDeferred
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -35,7 +41,8 @@ class AppNavigationTest {
     fun setUp() {
         repository = TestRepository()
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        context.getSharedPreferences("track_filters", android.content.Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("track_filters", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("user_profile", Context.MODE_PRIVATE).edit().clear().commit()
         val container = AppContainer(context, repository)
         composeRule.setContent { ITunesSearchTheme { ITunesApp(container) } }
     }
@@ -53,6 +60,28 @@ class AppNavigationTest {
         composeRule.onNodeWithTag("settings_screen").assertIsDisplayed()
         composeRule.onNodeWithTag("nav_catalog").performClick()
         composeRule.onNodeWithTag("catalog_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun savingProfileReturnsToTheTabAndPersistsTheForm() {
+        val name = "Иванов Иван Иванович"
+        val resumeUrl = "https://example.com/resume.pdf"
+        composeRule.onNodeWithTag("nav_profile").performClick()
+        composeRule.onNodeWithContentDescription("Редактирование профиля").performClick()
+        composeRule.onNodeWithTag("profile_name_input").performTextReplacement(name)
+        composeRule.onNodeWithTag("profile_resume_input").performTextReplacement(resumeUrl)
+        composeRule.onNodeWithText("Готово").performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodes(hasTestTag("nav_profile")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("nav_profile").assertIsSelected()
+        composeRule.onNodeWithText(name).assertIsDisplayed()
+        composeRule.onNodeWithText("Резюме").assertIsEnabled()
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val reopened = AppContainer(context, repository).profileRepository.profile.value
+        assertEquals(name, reopened.fullName)
+        assertEquals(resumeUrl, reopened.resumeUrl)
     }
 
     @Test
