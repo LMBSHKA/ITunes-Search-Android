@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.example.itunes_search.data.repository.MockTrackRepository
 import com.example.itunes_search.di.AppContainer
 import com.example.itunes_search.domain.model.Track
@@ -33,7 +34,9 @@ class AppNavigationTest {
     @Before
     fun setUp() {
         repository = TestRepository()
-        val container = AppContainer(repository)
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("track_filters", android.content.Context.MODE_PRIVATE).edit().clear().commit()
+        val container = AppContainer(context, repository)
         composeRule.setContent { ITunesSearchTheme { ITunesApp(container) } }
     }
 
