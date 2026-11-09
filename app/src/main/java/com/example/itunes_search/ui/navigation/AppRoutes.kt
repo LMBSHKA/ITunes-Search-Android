@@ -8,6 +8,9 @@ object AppRoutes {
     const val FAVORITES_LIST = "favorites_list"
     const val FAVORITE_DETAILS = "favorites/track/{$TRACK_ID_ARGUMENT}"
     const val SETTINGS = "settings"
+    const val PROFILE_GRAPH = "profile_graph"
+    const val PROFILE = "profile"
+    const val PROFILE_EDIT = "profile/edit"
     const val DETAILS = "track/{$TRACK_ID_ARGUMENT}"
 
     fun favoriteDetails(trackId: Long): String = "favorites/track/$trackId"
