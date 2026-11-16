@@ -10,18 +10,18 @@ object NetworkModule {
 
     // baseUrl переопределяется только в тестах с локальным MockWebServer.
     fun createApi(baseUrl: String = BASE_URL): ItunesApi {
-        val client = OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .callTimeout(20, TimeUnit.SECONDS)
-            .retryOnConnectionFailure(false)
-            .build()
-
         return Retrofit.Builder()
             .baseUrl(baseUrl)
-            .client(client)
+            .client(createHttpClient())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ItunesApi::class.java)
     }
+
+    internal fun createHttpClient(): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .callTimeout(20, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(false)
+        .build()
 }

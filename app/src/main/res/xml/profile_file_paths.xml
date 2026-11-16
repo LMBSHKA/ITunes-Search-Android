@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path name="draft_photos" path="profile_photos/" />
+    <cache-path name="resumes" path="profile_resumes/" />
+    <files-path name="avatars" path="profile_avatars/" />
+</paths>
