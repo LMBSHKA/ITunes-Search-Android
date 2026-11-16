@@ -1,6 +1,10 @@
 package com.example.itunes_search
 
+import android.Manifest
 import android.content.Context
+import android.os.Build
+import android.os.ParcelFileDescriptor
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -18,8 +22,10 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.itunes_search.data.repository.MockTrackRepository
+import com.example.itunes_search.data.reminder.AlarmLessonReminderScheduler
 import com.example.itunes_search.di.AppContainer
 import com.example.itunes_search.domain.model.Track
+import com.example.itunes_search.domain.model.LessonTime
 import com.example.itunes_search.domain.model.TrackError
 import com.example.itunes_search.domain.model.TrackResult
 import com.example.itunes_search.domain.repository.TrackRepository
@@ -27,15 +33,23 @@ import com.example.itunes_search.ui.ITunesApp
 import com.example.itunes_search.ui.theme.ITunesSearchTheme
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
+import org.junit.After
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.Calendar
 
 @RunWith(AndroidJUnit4::class)
 class AppNavigationTest {
     @get:Rule val composeRule = createComposeRule()
     private lateinit var repository: TestRepository
+
+    @After
+    fun cancelReminder() {
+        AlarmLessonReminderScheduler(InstrumentationRegistry.getInstrumentation().targetContext).cancel()
+    }
 
     @Before
     fun setUp() {
@@ -66,10 +80,16 @@ class AppNavigationTest {
     fun savingProfileReturnsToTheTabAndPersistsTheForm() {
         val name = "Иванов Иван Иванович"
         val resumeUrl = "https://example.com/resume.pdf"
+        val now = Calendar.getInstance()
+        val future = (now.clone() as Calendar).apply { add(Calendar.MINUTE, 2) }
+        assumeTrue(now.get(Calendar.DAY_OF_YEAR) == future.get(Calendar.DAY_OF_YEAR))
+        val time = LessonTime.format(future.get(Calendar.HOUR_OF_DAY), future.get(Calendar.MINUTE))
+        grantReminderPermissions()
         composeRule.onNodeWithTag("nav_profile").performClick()
         composeRule.onNodeWithContentDescription("Редактирование профиля").performClick()
         composeRule.onNodeWithTag("profile_name_input").performTextReplacement(name)
         composeRule.onNodeWithTag("profile_resume_input").performTextReplacement(resumeUrl)
+        composeRule.onNodeWithTag("profile_lesson_time_input").performScrollTo().performTextReplacement(time)
         composeRule.onNodeWithText("Готово").performScrollTo().performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodes(hasTestTag("nav_profile")).fetchSemanticsNodes().isNotEmpty()
@@ -82,6 +102,38 @@ class AppNavigationTest {
         val reopened = AppContainer(context, repository).profileRepository.profile.value
         assertEquals(name, reopened.fullName)
         assertEquals(resumeUrl, reopened.resumeUrl)
+        assertEquals(time, reopened.favoriteLessonTime)
+    }
+
+    @Test
+    fun timeValidationDisablesSavingAndTheClockFillsTheField() {
+        composeRule.onNodeWithTag("nav_profile").performClick()
+        composeRule.onNodeWithContentDescription("Редактирование профиля").performClick()
+        composeRule.onNodeWithTag("profile_save").performScrollTo().assertIsNotEnabled()
+        for (time in listOf("abc", "24:00", "9:5")) {
+            composeRule.onNodeWithTag("profile_lesson_time_input").performScrollTo().performTextReplacement(time)
+            composeRule.onNodeWithTag("profile_save").performScrollTo().assertIsNotEnabled()
+        }
+        composeRule.onNodeWithTag("profile_lesson_time_input").performScrollTo().performTextReplacement("18:05")
+        composeRule.onNodeWithTag("profile_save").performScrollTo().assertIsEnabled()
+        composeRule.onNodeWithTag("profile_lesson_time_picker").performScrollTo().performClick()
+        composeRule.onNodeWithTag("lesson_time_clock").assertIsDisplayed()
+        composeRule.onNodeWithTag("lesson_time_confirm").performClick()
+        composeRule.onNodeWithTag("profile_lesson_time_input").assertTextContains("18:05")
+    }
+
+    private fun grantReminderPermissions() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val packageName = instrumentation.targetContext.packageName
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            instrumentation.uiAutomation.grantRuntimePermission(packageName, Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val descriptor = instrumentation.uiAutomation.executeShellCommand(
+                "appops set $packageName SCHEDULE_EXACT_ALARM allow"
+            )
+            ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { it.readBytes() }
+        }
     }
 
     @Test

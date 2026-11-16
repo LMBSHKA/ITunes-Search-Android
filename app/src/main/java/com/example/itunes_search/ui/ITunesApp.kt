@@ -159,7 +159,9 @@ fun ITunesApp(container: AppContainer) {
                 }
                 composable(AppRoutes.PROFILE_EDIT) {
                     val factory = remember(container) {
-                        EditProfileViewModel.factory(container.profileRepository, container.profilePhotos)
+                        EditProfileViewModel.factory(
+                            container.profileRepository, container.profilePhotos, container.lessonReminders
+                        )
                     }
                     val editProfileViewModel: EditProfileViewModel = viewModel(factory = factory)
                     EditProfileScreen(editProfileViewModel, onBack = { navController.popBackStack() })
