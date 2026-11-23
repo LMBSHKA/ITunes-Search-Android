@@ -57,14 +57,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.example.itunes_search.R
 import com.example.itunes_search.data.reminder.LessonReminderAccess
 import com.example.itunes_search.domain.model.LessonTime
+import com.example.itunes_search.profile.R
 import java.util.Calendar
+import com.example.itunes_search.core.ui.R as CoreUiR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(viewModel: ProfileViewModel, onEdit: () -> Unit) {
+internal fun ProfileScreen(viewModel: ProfileViewModel, onEdit: () -> Unit) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val resume by viewModel.resumeState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -127,7 +128,7 @@ fun ProfileScreen(viewModel: ProfileViewModel, onEdit: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditProfileScreen(viewModel: EditProfileViewModel, onBack: () -> Unit) {
+internal fun EditProfileScreen(viewModel: EditProfileViewModel, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showPhotoSources by rememberSaveable { mutableStateOf(false) }
     var showTimePicker by rememberSaveable { mutableStateOf(false) }
@@ -193,7 +194,7 @@ fun EditProfileScreen(viewModel: EditProfileViewModel, onBack: () -> Unit) {
             title = { Text(stringResource(R.string.profile_edit)) },
             navigationIcon = {
                 IconButton(onClick = onBack, enabled = editable) {
-                    Icon(painterResource(R.drawable.ic_back), stringResource(R.string.profile_back))
+                    Icon(painterResource(CoreUiR.drawable.ic_back), stringResource(R.string.profile_back))
                 }
             }
         )
@@ -299,7 +300,7 @@ fun EditProfileScreen(viewModel: EditProfileViewModel, onBack: () -> Unit) {
                 enabled = editable && !state.invalidLessonTime,
                 modifier = Modifier.fillMaxWidth().testTag("profile_save")
             ) {
-                Text(stringResource(R.string.done))
+                Text(stringResource(CoreUiR.string.done))
             }
             if (state.isBusy) CircularProgressIndicator()
         }
@@ -321,7 +322,7 @@ fun EditProfileScreen(viewModel: EditProfileViewModel, onBack: () -> Unit) {
                 TextButton(onClick = {
                     viewModel.changeLessonTime(LessonTime.format(timePickerState.hour, timePickerState.minute))
                     showTimePicker = false
-                }, modifier = Modifier.testTag("lesson_time_confirm")) { Text(stringResource(R.string.done)) }
+                }, modifier = Modifier.testTag("lesson_time_confirm")) { Text(stringResource(CoreUiR.string.done)) }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.profile_cancel)) }

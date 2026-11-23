@@ -8,7 +8,6 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.itunes_search.R
 import com.example.itunes_search.domain.model.LessonTime
 import com.example.itunes_search.domain.model.UserProfile
 import com.example.itunes_search.domain.repository.LessonReminder
@@ -16,6 +15,7 @@ import com.example.itunes_search.domain.repository.LessonReminderScheduler
 import com.example.itunes_search.domain.repository.LessonReminderTimePassedException
 import com.example.itunes_search.domain.repository.ProfilePhotoStorage
 import com.example.itunes_search.domain.repository.ProfileRepository
+import com.example.itunes_search.profile.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

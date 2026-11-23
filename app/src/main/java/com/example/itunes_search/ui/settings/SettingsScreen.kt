@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.example.itunes_search.R
 import com.example.itunes_search.domain.model.TrackFilters
 import com.example.itunes_search.domain.model.TrackMediaType
+import com.example.itunes_search.core.ui.R as CoreUiR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +81,7 @@ fun SettingsScreen(
                 )
             }
             Button(onClick = onDone, modifier = Modifier.fillMaxWidth().testTag("filters_done")) {
-                Text(stringResource(R.string.done))
+                Text(stringResource(CoreUiR.string.done))
             }
             TextButton(onClick = onReset, modifier = Modifier.fillMaxWidth().testTag("filters_reset")) {
                 Text(stringResource(R.string.reset_filters))

@@ -6,10 +6,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.itunes_search.R
 import com.example.itunes_search.domain.model.ResumeDocument
 import com.example.itunes_search.domain.repository.ProfileRepository
 import com.example.itunes_search.domain.repository.ResumeRepository
+import com.example.itunes_search.profile.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
