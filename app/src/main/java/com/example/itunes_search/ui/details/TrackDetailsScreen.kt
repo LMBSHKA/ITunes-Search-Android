@@ -40,6 +40,7 @@ import com.example.itunes_search.ui.components.LoadingContent
 import com.example.itunes_search.util.formatDuration
 import com.example.itunes_search.util.formatPrice
 import com.example.itunes_search.util.formatReleaseDate
+import com.example.itunes_search.core.ui.R as CoreUiR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,7 +70,7 @@ fun TrackDetailsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("details_back")) {
                         Icon(
-                            painterResource(R.drawable.ic_back),
+                            painterResource(CoreUiR.drawable.ic_back),
                             contentDescription = stringResource(R.string.back)
                         )
                     }

@@ -1,13 +1,13 @@
 package com.example.itunes_search.ui
 
 import androidx.lifecycle.SavedStateHandle
-import com.example.itunes_search.R
 import com.example.itunes_search.domain.model.LessonTime
 import com.example.itunes_search.domain.model.UserProfile
 import com.example.itunes_search.domain.repository.LessonReminder
 import com.example.itunes_search.domain.repository.LessonReminderScheduler
 import com.example.itunes_search.domain.repository.ProfilePhotoStorage
 import com.example.itunes_search.domain.repository.ProfileRepository
+import com.example.itunes_search.profile.R
 import com.example.itunes_search.testutil.MainDispatcherRule
 import com.example.itunes_search.ui.profile.EditProfileViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi

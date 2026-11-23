@@ -23,5 +23,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ITunes-Search"
-include(":app")
- 
+include(":app", ":profile", ":core-ui")

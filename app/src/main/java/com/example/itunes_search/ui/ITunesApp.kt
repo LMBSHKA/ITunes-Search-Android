@@ -42,12 +42,11 @@ import com.example.itunes_search.ui.details.TrackDetailsViewModel
 import com.example.itunes_search.ui.favorites.FavoritesScreen
 import com.example.itunes_search.ui.favorites.FavoritesViewModel
 import com.example.itunes_search.ui.navigation.AppRoutes
-import com.example.itunes_search.ui.profile.EditProfileScreen
-import com.example.itunes_search.ui.profile.EditProfileViewModel
-import com.example.itunes_search.ui.profile.ProfileScreen
-import com.example.itunes_search.ui.profile.ProfileViewModel
+import com.example.itunes_search.ui.profile.ProfileRoutes
+import com.example.itunes_search.ui.profile.profileGraph
 import com.example.itunes_search.ui.settings.SettingsScreen
 import com.example.itunes_search.ui.settings.SettingsViewModel
+import com.example.itunes_search.profile.R as ProfileR
 
 private data class BottomTab(
     val route: String,
@@ -60,7 +59,7 @@ private val bottomTabs = listOf(
     BottomTab(AppRoutes.CATALOG_GRAPH, R.string.tab_catalog, R.drawable.ic_music, "nav_catalog"),
     BottomTab(AppRoutes.FAVORITES, R.string.tab_favorites, R.drawable.ic_favorite, "nav_favorites"),
     BottomTab(AppRoutes.SETTINGS, R.string.tab_settings, R.drawable.ic_settings, "nav_settings"),
-    BottomTab(AppRoutes.PROFILE_GRAPH, R.string.tab_profile, R.drawable.ic_profile, "nav_profile")
+    BottomTab(ProfileRoutes.GRAPH, ProfileR.string.tab_profile, ProfileR.drawable.ic_profile, "nav_profile")
 )
 
 @Composable
@@ -86,7 +85,7 @@ fun ITunesApp(container: AppContainer) {
         modifier = Modifier.fillMaxSize().imePadding(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (destination?.route != AppRoutes.PROFILE_EDIT) {
+            if (destination?.route != ProfileRoutes.EDIT) {
                 NavigationBar {
                     bottomTabs.forEach { tab ->
                         val selected = destination?.hierarchy?.any { it.route == tab.route } == true
@@ -147,26 +146,13 @@ fun ITunesApp(container: AppContainer) {
                 }
                 trackDetailsDestination(AppRoutes.FAVORITE_DETAILS, container) { navController.popBackStack() }
             }
-            navigation(startDestination = AppRoutes.PROFILE, route = AppRoutes.PROFILE_GRAPH) {
-                composable(AppRoutes.PROFILE) {
-                    val factory = remember(container) {
-                        ProfileViewModel.factory(container.profileRepository, container.resumeRepository)
-                    }
-                    val profileViewModel: ProfileViewModel = viewModel(factory = factory)
-                    ProfileScreen(profileViewModel, onEdit = {
-                        navController.navigate(AppRoutes.PROFILE_EDIT) { launchSingleTop = true }
-                    })
-                }
-                composable(AppRoutes.PROFILE_EDIT) {
-                    val factory = remember(container) {
-                        EditProfileViewModel.factory(
-                            container.profileRepository, container.profilePhotos, container.lessonReminders
-                        )
-                    }
-                    val editProfileViewModel: EditProfileViewModel = viewModel(factory = factory)
-                    EditProfileScreen(editProfileViewModel, onBack = { navController.popBackStack() })
-                }
-            }
+            profileGraph(
+                navController = navController,
+                repository = container.profileRepository,
+                photos = container.profilePhotos,
+                resumeRepository = container.resumeRepository,
+                reminders = container.lessonReminders
+            )
             composable(AppRoutes.SETTINGS) {
                 val factory = remember(container) {
                     SettingsViewModel.factory(container.filtersRepository, container.filterBadgeCache)
