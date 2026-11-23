@@ -20,7 +20,8 @@ class SharedPreferencesProfileRepository(
         UserProfile(
             fullName = preferences.getString(FULL_NAME, "").orEmpty(),
             avatarUri = preferences.getString(AVATAR_URI, null),
-            resumeUrl = preferences.getString(RESUME_URL, "").orEmpty()
+            resumeUrl = preferences.getString(RESUME_URL, "").orEmpty(),
+            favoriteLessonTime = preferences.getString(FAVORITE_LESSON_TIME, "").orEmpty()
         )
     )
     override val profile = currentProfile.asStateFlow()
@@ -34,6 +35,7 @@ class SharedPreferencesProfileRepository(
                 .putString(FULL_NAME, saved.fullName)
                 .putString(AVATAR_URI, saved.avatarUri)
                 .putString(RESUME_URL, saved.resumeUrl)
+                .putString(FAVORITE_LESSON_TIME, saved.favoriteLessonTime)
                 .commit()
             if (!committed) {
                 newAvatar?.let(photos::deleteAvatar)
@@ -50,5 +52,6 @@ class SharedPreferencesProfileRepository(
         const val FULL_NAME = "full_name"
         const val AVATAR_URI = "avatar_uri"
         const val RESUME_URL = "resume_url"
+        const val FAVORITE_LESSON_TIME = "favorite_lesson_time"
     }
 }

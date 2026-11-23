@@ -1,5 +1,6 @@
 package com.example.itunes_search.ui.profile
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
@@ -31,11 +32,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,6 +58,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.itunes_search.R
+import com.example.itunes_search.data.reminder.LessonReminderAccess
+import com.example.itunes_search.domain.model.LessonTime
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,6 +109,9 @@ fun ProfileScreen(viewModel: ProfileViewModel, onEdit: () -> Unit) {
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center
             )
+            if (profile.favoriteLessonTime.isNotEmpty()) {
+                Text(stringResource(R.string.profile_lesson_time_value, profile.favoriteLessonTime))
+            }
             Button(
                 onClick = viewModel::downloadResume,
                 enabled = profile.resumeUrl.isNotBlank() && !resume.isDownloading,
@@ -120,6 +130,48 @@ fun ProfileScreen(viewModel: ProfileViewModel, onEdit: () -> Unit) {
 fun EditProfileScreen(viewModel: EditProfileViewModel, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showPhotoSources by rememberSaveable { mutableStateOf(false) }
+    var showTimePicker by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val reminderAccess = remember(context) { LessonReminderAccess(context) }
+    val reminderSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
+    val exactAlarmSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        // У системного экрана разрешений нет надёжного resultCode: проверяем само разрешение.
+        when {
+            !reminderAccess.notificationsEnabled() -> viewModel.notificationsUnavailable()
+            !reminderAccess.canScheduleExactAlarms() -> viewModel.exactAlarmsUnavailable()
+            else -> viewModel.save()
+        }
+    }
+
+    fun saveWithExactAlarmAccess() {
+        if (reminderAccess.canScheduleExactAlarms()) {
+            viewModel.save()
+        } else {
+            viewModel.exactAlarmsUnavailable()
+            try {
+                exactAlarmSettings.launch(reminderAccess.exactAlarmSettingsIntent())
+            } catch (_: ActivityNotFoundException) {
+                viewModel.reminderSettingsUnavailable()
+            } catch (_: SecurityException) {
+                viewModel.reminderSettingsUnavailable()
+            }
+        }
+    }
+
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && reminderAccess.notificationsEnabled()) saveWithExactAlarmAccess()
+        else viewModel.notificationsUnavailable()
+    }
+
+    fun openReminderSettings(intent: Intent) {
+        try {
+            reminderSettings.launch(intent)
+        } catch (_: ActivityNotFoundException) {
+            viewModel.reminderSettingsUnavailable()
+        } catch (_: SecurityException) {
+            viewModel.reminderSettingsUnavailable()
+        }
+    }
 
     // Photo Picker даёт доступ только к выбранному фото. Если он недоступен,
     // PickVisualMedia использует системный выбор файла через ACTION_OPEN_DOCUMENT.
@@ -187,12 +239,94 @@ fun EditProfileScreen(viewModel: EditProfileViewModel, onBack: () -> Unit) {
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().testTag("profile_resume_input")
             )
-            state.error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
-            Button(onClick = viewModel::save, enabled = editable, modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = state.draft.favoriteLessonTime,
+                onValueChange = viewModel::changeLessonTime,
+                label = { Text(stringResource(R.string.profile_lesson_time)) },
+                placeholder = { Text("HH:mm") },
+                // Текстовая клавиатура позволяет вручную ввести двоеточие на любом устройстве.
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                trailingIcon = {
+                    IconButton(
+                        onClick = { showTimePicker = true },
+                        enabled = editable,
+                        modifier = Modifier.testTag("profile_lesson_time_picker")
+                    ) {
+                        Icon(painterResource(R.drawable.ic_clock), stringResource(R.string.profile_lesson_time_picker))
+                    }
+                },
+                supportingText = {
+                    val message = when {
+                        state.draft.favoriteLessonTime.isEmpty() -> R.string.profile_lesson_time_required
+                        state.invalidLessonTime -> R.string.profile_lesson_time_invalid
+                        else -> R.string.profile_lesson_time_hint
+                    }
+                    Text(stringResource(message))
+                },
+                isError = state.invalidLessonTime,
+                enabled = editable,
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("profile_lesson_time_input")
+            )
+            state.error?.let { error ->
+                Text(stringResource(error), color = MaterialTheme.colorScheme.error)
+                if (error == R.string.profile_notifications_required || error == R.string.profile_reminder_permissions_error) {
+                    TextButton(
+                        onClick = { openReminderSettings(reminderAccess.notificationSettingsIntent()) },
+                        enabled = editable
+                    ) { Text(stringResource(R.string.profile_notification_settings)) }
+                }
+                if (error == R.string.profile_exact_alarms_required || error == R.string.profile_reminder_permissions_error) {
+                    if (!reminderAccess.canScheduleExactAlarms()) {
+                        TextButton(
+                            onClick = { openReminderSettings(reminderAccess.exactAlarmSettingsIntent()) },
+                            enabled = editable
+                        ) { Text(stringResource(R.string.profile_exact_alarm_settings)) }
+                    }
+                }
+            }
+            Button(
+                onClick = {
+                    if (viewModel.validateForSave()) {
+                        when {
+                            reminderAccess.needsNotificationPermission() ->
+                                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            !reminderAccess.notificationsEnabled() -> viewModel.notificationsUnavailable()
+                            else -> saveWithExactAlarmAccess()
+                        }
+                    }
+                },
+                enabled = editable && !state.invalidLessonTime,
+                modifier = Modifier.fillMaxWidth().testTag("profile_save")
+            ) {
                 Text(stringResource(R.string.done))
             }
             if (state.isBusy) CircularProgressIndicator()
         }
+    }
+
+    if (showTimePicker) {
+        val now = Calendar.getInstance()
+        val current = LessonTime.parse(state.draft.favoriteLessonTime)
+        val timePickerState = rememberTimePickerState(
+            initialHour = current?.hour ?: now.get(Calendar.HOUR_OF_DAY),
+            initialMinute = current?.minute ?: now.get(Calendar.MINUTE),
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text(stringResource(R.string.profile_lesson_time)) },
+            text = { TimePicker(state = timePickerState, modifier = Modifier.testTag("lesson_time_clock")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.changeLessonTime(LessonTime.format(timePickerState.hour, timePickerState.minute))
+                    showTimePicker = false
+                }, modifier = Modifier.testTag("lesson_time_confirm")) { Text(stringResource(R.string.done)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.profile_cancel)) }
+            }
+        )
     }
 
     if (showPhotoSources) {

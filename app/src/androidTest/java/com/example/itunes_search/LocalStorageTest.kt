@@ -5,11 +5,14 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.itunes_search.data.local.ITunesDatabase
+import com.example.itunes_search.data.local.ProfilePhotoFiles
+import com.example.itunes_search.data.local.SharedPreferencesProfileRepository
 import com.example.itunes_search.data.local.SharedPreferencesTrackFiltersRepository
 import com.example.itunes_search.data.repository.RoomFavoriteTracksRepository
 import com.example.itunes_search.domain.model.Track
 import com.example.itunes_search.domain.model.TrackFilters
 import com.example.itunes_search.domain.model.TrackMediaType
+import com.example.itunes_search.domain.model.UserProfile
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -29,6 +32,7 @@ class LocalStorageTest {
         database?.close()
         context.deleteDatabase(databaseName)
         context.getSharedPreferences("practice5-test-filters", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("practice7-test-profile", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     @Test fun completeFavoriteSurvivesDatabaseReopeningWithoutNetwork() = runBlocking {
@@ -68,6 +72,23 @@ class LocalStorageTest {
             context.getSharedPreferences("practice5-test-filters", Context.MODE_PRIVATE)
         )
         assertEquals(filters, reopened.load())
+    }
+
+    @Test fun lessonTimeSurvivesProfileRepositoryReopening() = runBlocking {
+        val preferences = context.getSharedPreferences("practice7-test-profile", Context.MODE_PRIVATE)
+        preferences.edit().clear().commit()
+        val profile = UserProfile(fullName = "Иван Иванов", favoriteLessonTime = "18:05")
+        SharedPreferencesProfileRepository(preferences, ProfilePhotoFiles(context)).save(profile)
+        val reopened = SharedPreferencesProfileRepository(preferences, ProfilePhotoFiles(context))
+        assertEquals(profile, reopened.profile.value)
+    }
+
+    @Test fun profileFromPreviousPracticeHasAnEmptyLessonTimeByDefault() {
+        val preferences = context.getSharedPreferences("practice7-test-profile", Context.MODE_PRIVATE)
+        preferences.edit().clear().putString("full_name", "Иван Иванов").commit()
+        val reopened = SharedPreferencesProfileRepository(preferences, ProfilePhotoFiles(context))
+        assertEquals("Иван Иванов", reopened.profile.value.fullName)
+        assertEquals("", reopened.profile.value.favoriteLessonTime)
     }
 
     private fun openDatabase() = Room.databaseBuilder(context, ITunesDatabase::class.java, databaseName).build()

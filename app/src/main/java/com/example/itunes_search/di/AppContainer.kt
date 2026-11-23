@@ -9,10 +9,12 @@ import com.example.itunes_search.data.local.SharedPreferencesProfileRepository
 import com.example.itunes_search.data.local.SharedPreferencesTrackFiltersRepository
 import com.example.itunes_search.data.remote.NetworkModule
 import com.example.itunes_search.data.remote.NetworkResumeRepository
+import com.example.itunes_search.data.reminder.AlarmLessonReminderScheduler
 import com.example.itunes_search.data.repository.LocalFirstTrackRepository
 import com.example.itunes_search.data.repository.NetworkTrackRepository
 import com.example.itunes_search.data.repository.RoomFavoriteTracksRepository
 import com.example.itunes_search.domain.repository.FavoriteTracksRepository
+import com.example.itunes_search.domain.repository.LessonReminderScheduler
 import com.example.itunes_search.domain.repository.ProfilePhotoStorage
 import com.example.itunes_search.domain.repository.ProfileRepository
 import com.example.itunes_search.domain.repository.ResumeRepository
@@ -34,6 +36,7 @@ class AppContainer(
 
     private val photoFiles = ProfilePhotoFiles(appContext)
     val profilePhotos: ProfilePhotoStorage = photoFiles
+    val lessonReminders: LessonReminderScheduler = AlarmLessonReminderScheduler(appContext)
     val profileRepository: ProfileRepository = SharedPreferencesProfileRepository(
         appContext.getSharedPreferences("user_profile", Context.MODE_PRIVATE),
         photoFiles
